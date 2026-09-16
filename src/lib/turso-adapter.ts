@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-explicit-any, no-console */
 
 /**
  * Turso (libSQL) 适配器
@@ -11,7 +11,11 @@
  * 注意：此模块仅在服务端使用，通过 webpack 配置排除客户端打包
  */
 
-import { DatabaseAdapter, D1PreparedStatement, D1Result } from './d1-adapter';
+import type {
+  D1PreparedStatement,
+  D1Result,
+  DatabaseAdapter,
+} from './d1-adapter';
 
 /**
  * 动态加载 @libsql/client 的 createClient 函数
@@ -23,6 +27,7 @@ import { DatabaseAdapter, D1PreparedStatement, D1Result } from './d1-adapter';
  * 模块和 isomorphic-ws/isomorphic-fetch 等不兼容边缘环境的依赖
  */
 function getLibsqlClient(): any {
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
   const mod = require('@libsql/client/http');
   return mod.createClient || mod.default?.createClient;
 }
@@ -49,8 +54,8 @@ export class TursoAdapter implements DatabaseAdapter {
 
   async batch(statements: D1PreparedStatement[]): Promise<D1Result[]> {
     // Turso/libSQL 原生支持 batch
-    const libsqlStatements = statements.map(
-      (stmt) => (stmt as TursoPreparedStatement).toLibSQLBatch()
+    const libsqlStatements = statements.map((stmt) =>
+      (stmt as TursoPreparedStatement).toLibSQLBatch()
     );
     const results = await this.client.batch(libsqlStatements, 'write');
     return results.map((result: any) => ({
@@ -78,10 +83,7 @@ export class TursoAdapter implements DatabaseAdapter {
 class TursoPreparedStatement implements D1PreparedStatement {
   private params: any[] = [];
 
-  constructor(
-    private client: any,
-    private query: string
-  ) {}
+  constructor(private client: any, private query: string) {}
 
   bind(...values: any[]): D1PreparedStatement {
     this.params = values;
@@ -106,7 +108,8 @@ class TursoPreparedStatement implements D1PreparedStatement {
       return row as T;
     } catch (err) {
       console.error('Turso first() error:', err);
-      return null;
+      // A failed query is not an empty table. Let callers handle the failure.
+      throw err;
     }
   }
 
@@ -131,12 +134,10 @@ class TursoPreparedStatement implements D1PreparedStatement {
         },
         results: result.rows as T[],
       };
-    } catch (err: any) {
+    } catch (err) {
       console.error('Turso run() error:', err);
-      return {
-        success: false,
-        error: err.message,
-      };
+      // Writes must not appear successful when persistence failed.
+      throw err;
     }
   }
 
@@ -154,13 +155,9 @@ class TursoPreparedStatement implements D1PreparedStatement {
         success: true,
         results: (result.rows || []) as T[],
       };
-    } catch (err: any) {
+    } catch (err) {
       console.error('Turso all() error:', err);
-      return {
-        success: false,
-        error: err.message,
-        results: [],
-      };
+      throw err;
     }
   }
 
