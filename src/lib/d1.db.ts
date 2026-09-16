@@ -6,30 +6,31 @@
  * 注意：此模块仅在服务端使用，通过 webpack 配置排除客户端打包
  */
 
-import {
-  IStorage,
-  PlayRecord,
-  Favorite,
-  SkipConfig,
-  DanmakuFilterConfig,
-  Notification,
-  MovieRequest,
-  PushSubscriptionRecord,
-  LocalSettingsSyncRecord,
-  SetLocalSettingsSyncOptions,
-  SetLocalSettingsSyncResult,
-} from './types';
 import { AdminConfig } from './admin.types';
-import { MangaReadRecord, MangaShelfItem } from './manga.types';
 import { BookReadRecord, BookShelfItem } from './book.types';
 import { DatabaseAdapter } from './d1-adapter';
+import { MangaReadRecord, MangaShelfItem } from './manga.types';
+import { ensureMangaShelfSchema } from './manga-shelf-schema';
 import {
   MusicV2HistoryRecord,
   MusicV2PlaylistItem,
   MusicV2PlaylistRecord,
 } from './music-v2';
-import { userInfoCache } from './user-cache';
 import { dispatchNotificationChannels } from './notification-dispatch';
+import {
+  DanmakuFilterConfig,
+  Favorite,
+  IStorage,
+  LocalSettingsSyncRecord,
+  MovieRequest,
+  Notification,
+  PlayRecord,
+  PushSubscriptionRecord,
+  SetLocalSettingsSyncOptions,
+  SetLocalSettingsSyncResult,
+  SkipConfig,
+} from './types';
+import { userInfoCache } from './user-cache';
 
 /**
  * Cloudflare D1 存储实现
@@ -46,44 +47,12 @@ import { dispatchNotificationChannels } from './notification-dispatch';
  */
 export class D1Storage implements IStorage {
   private db: DatabaseAdapter;
-  private schemaReady: Promise<void>;
   public adapter: RedisHashAdapter;
 
   constructor(adapter: DatabaseAdapter) {
     this.db = adapter;
-    this.schemaReady = this.ensureMangaShelfColumns();
     // 创建 Redis Hash 兼容适配器用于设备管理
     this.adapter = new RedisHashAdapter(adapter);
-  }
-
-  private async ensureMangaShelfColumns(): Promise<void> {
-    const statements = [
-      'ALTER TABLE manga_shelf ADD COLUMN latest_chapter_id TEXT',
-      'ALTER TABLE manga_shelf ADD COLUMN latest_chapter_name TEXT',
-      'ALTER TABLE manga_shelf ADD COLUMN latest_chapter_count INTEGER',
-      'ALTER TABLE manga_shelf ADD COLUMN unread_chapter_count INTEGER',
-    ];
-
-    for (const statement of statements) {
-      try {
-        const result = await this.db.prepare(statement).run();
-        if (
-          !result.success &&
-          result.error &&
-          !/duplicate column|already exists/i.test(result.error)
-        ) {
-          console.warn(
-            'D1Storage.ensureMangaShelfColumns warning:',
-            result.error
-          );
-        }
-      } catch (err) {
-        const message = err instanceof Error ? err.message : String(err);
-        if (!/duplicate column|already exists|no such table/i.test(message)) {
-          console.warn('D1Storage.ensureMangaShelfColumns warning:', err);
-        }
-      }
-    }
   }
 
 
@@ -2195,7 +2164,7 @@ export class D1Storage implements IStorage {
     key: string
   ): Promise<MangaShelfItem | null> {
     try {
-      await this.schemaReady;
+      await ensureMangaShelfSchema(this.db);
       const result = await this.db
         .prepare('SELECT * FROM manga_shelf WHERE username = ? AND key = ?')
         .bind(userName, key)
@@ -2239,7 +2208,7 @@ export class D1Storage implements IStorage {
     item: MangaShelfItem
   ): Promise<void> {
     try {
-      await this.schemaReady;
+      await ensureMangaShelfSchema(this.db);
       await this.db
         .prepare(
           `
@@ -2297,7 +2266,7 @@ export class D1Storage implements IStorage {
     userName: string
   ): Promise<{ [key: string]: MangaShelfItem }> {
     try {
-      await this.schemaReady;
+      await ensureMangaShelfSchema(this.db);
       const results = await this.db
         .prepare(
           'SELECT * FROM manga_shelf WHERE username = ? ORDER BY save_time DESC'
