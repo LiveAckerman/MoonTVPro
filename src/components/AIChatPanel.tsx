@@ -8,8 +8,8 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import ReactMarkdown from 'react-markdown';
 
-import { getAuthInfoFromBrowserCookie } from '@/lib/auth';
 import { VideoContext } from '@/lib/ai-orchestrator';
+import { getAuthInfoFromBrowserCookie } from '@/lib/auth';
 
 interface ChatMessage {
   role: 'user' | 'assistant';
@@ -46,6 +46,8 @@ interface AIChatPanelProps {
   onStreamingChange?: (isStreaming: boolean) => void;
   useDrawer?: boolean;
   drawerWidth?: string;
+  /** A homepage submission, consumed once. Omitted by all other entry points. */
+  initialRequest?: { id: number; text: string };
 }
 
 type MarkdownSegment =
@@ -249,6 +251,7 @@ export default function AIChatPanel({
   onStreamingChange,
   useDrawer = false,
   drawerWidth = 'w-full md:w-[25%]',
+  initialRequest,
 }: AIChatPanelProps) {
   const pathname = usePathname();
 
@@ -276,6 +279,7 @@ export default function AIChatPanel({
   const prevStorageKeyRef = useRef<string>(storageKey);
   const abortControllerRef = useRef<AbortController | null>(null);
   const hasLoadedRef = useRef(false);
+  const consumedInitialRequestRef = useRef<number | null>(null);
   /** 本次请求服务端上下文压缩产生的摘要，流式结束后随本消息固化回喂 */
   const compressionSummariesRef = useRef<string[]>([]);
 
@@ -586,11 +590,10 @@ export default function AIChatPanel({
     }
   }, [isOpen, useDrawer]);
 
-  const handleSendMessage = async (retryMessage?: string) => {
+  const handleSendMessage = async (retryMessage?: string, submittedMessage?: string) => {
     const isRetry = typeof retryMessage === 'string';
-    if (isStreaming || (!isRetry && !input.trim())) return;
-
-    const userMessage = isRetry ? retryMessage.trim() : input.trim();
+    const userMessage = isRetry ? retryMessage.trim() : (submittedMessage ?? input).trim();
+    if (isStreaming || !userMessage) return;
     const requestHistory = (isRetry ? messages.slice(0, -2) : messages).filter(
       (m) => m.role !== 'assistant' || m.content !== welcomeMessage
     );
@@ -650,7 +653,7 @@ export default function AIChatPanel({
         let streamError = '';
         let buffer = ''; // 缓冲区，用于保存不完整的行
 
-        while (true) {
+        for (;;) {
           const { done, value } = await reader.read();
           if (done) break;
 
@@ -839,6 +842,15 @@ export default function AIChatPanel({
     }
   };
 
+  // Use the existing request / streaming path; a new homepage prompt is NOT a retry.
+  const sendMessageRef = useRef(handleSendMessage);
+  useEffect(() => { sendMessageRef.current = handleSendMessage; });
+  useEffect(() => {
+    if (!isOpen || isStreaming || !initialRequest?.text.trim() || consumedInitialRequestRef.current === initialRequest.id) return;
+    consumedInitialRequestRef.current = initialRequest.id;
+    void sendMessageRef.current(undefined, initialRequest.text);
+  }, [initialRequest, isOpen, isStreaming]);
+
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
@@ -892,6 +904,7 @@ export default function AIChatPanel({
           </div>
           <button
             onClick={onClose}
+            aria-label='关闭 AI 对话'
             className='rounded-lg p-2 text-gray-500 transition-colors hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800 flex-shrink-0'
           >
             <X size={20} />
@@ -1103,6 +1116,7 @@ export default function AIChatPanel({
           </div>
           <button
             onClick={onClose}
+            aria-label='关闭 AI 对话'
             className='rounded-lg p-2 text-gray-500 transition-colors hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800 flex-shrink-0'
           >
          <X size={20} />
