@@ -10701,7 +10701,7 @@ const SiteConfigComponent = ({
     DisableYellowFilter: false,
     FluidSearch: true,
     DanmakuSourceType: 'builtin',
-    DanmakuApiBase: 'https://mtvpls-danmu.netlify.app/87654321',
+    DanmakuApiBase: 'https://mtvpls-danmu.netlify.app',
     DanmakuApiToken: '87654321',
     DanmakuAutoLoadDefault: true,
     TMDBApiKey: '',
@@ -11533,7 +11533,7 @@ const SiteConfigComponent = ({
                 </label>
                 <input
                   type='text'
-                  placeholder='http://localhost:9321'
+                  placeholder='https://mtvpls-danmu.netlify.app'
                   value={siteSettings.DanmakuApiBase}
                   onChange={(e) =>
                     setSiteSettings((prev) => ({
@@ -11544,7 +11544,7 @@ const SiteConfigComponent = ({
                   className='w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-green-500 focus:border-transparent'
                 />
                 <p className='mt-1 text-xs text-gray-500 dark:text-gray-400'>
-                  自定义弹幕服务器的 API 地址。API部署参考
+                  填写弹幕服务器的基础地址，例如 https://dm.ljw44.com。不要在地址末尾添加 Token 或 /api/v2，访问令牌请在下方单独填写。API 部署参考
                   <a
                     href='https://github.com/huangxd-/danmu_api.git'
                     target='_blank'
@@ -11574,7 +11574,7 @@ const SiteConfigComponent = ({
                   className='w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-green-500 focus:border-transparent'
                 />
                 <p className='mt-1 text-xs text-gray-500 dark:text-gray-400'>
-                  自定义弹幕服务器的访问令牌，默认为 87654321
+                  填写弹幕服务器配置中的普通 TOKEN，只填写令牌本身，不要包含域名或路径，也不要填写管理员 ADMIN_TOKEN。87654321 仅为项目默认示例，自建服务请填写实际配置的令牌。
                 </p>
               </div>
             </>

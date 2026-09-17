@@ -28,47 +28,40 @@ interface ContinueWatchingProps {
 
 type PlayRecordItem = PlayRecord & { key: string };
 
+const DASHBOARD_HISTORY_LIMIT = 10;
+
 export default function ContinueWatching({
   className,
   variant = 'row',
 }: ContinueWatchingProps) {
   const storageType = process.env.NEXT_PUBLIC_STORAGE_TYPE || 'localstorage';
-  const cachedDisplayLimit = storageType !== 'localstorage' ? 10 : undefined;
+  const displayLimit =
+    variant === 'dashboard' ? DASHBOARD_HISTORY_LIMIT : undefined;
+  const cachedDisplayLimit =
+    displayLimit ?? (storageType !== 'localstorage' ? 10 : undefined);
   const [playRecords, setPlayRecords] = useState<PlayRecordItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [showPlayRecordsPanel, setShowPlayRecordsPanel] = useState(false);
 
-  const updatePlayRecords = (
-    allRecords: Record<string, PlayRecord>,
-    limit?: number
-  ) => {
-    const recordsArray = Object.entries(allRecords).map(([key, record]) => ({
-      ...record,
-      key,
-    }));
-
-    const sortedRecords = recordsArray.sort(
-      (a, b) => b.save_time - a.save_time
-    );
-    setPlayRecords(limit ? sortedRecords.slice(0, limit) : sortedRecords);
-  };
-
-  const applyCachedSnapshot = () => {
-    const cachedRecords = getCachedPlayRecordsSnapshot();
-    if (Object.keys(cachedRecords).length === 0) {
-      return false;
-    }
-
-    updatePlayRecords(cachedRecords, cachedDisplayLimit);
-    setLoading(false);
-    return true;
-  };
-
   useEffect(() => {
+    let active = true;
+    const updatePlayRecords = (
+      allRecords: Record<string, PlayRecord>,
+      limit = displayLimit
+    ) => {
+      if (!active) return;
+      const sortedRecords = Object.entries(allRecords)
+        .map(([key, record]) => ({ ...record, key }))
+        .sort((a, b) => b.save_time - a.save_time);
+      // Limit only the dashboard preview, never the source cache or full panel.
+      setPlayRecords(limit ? sortedRecords.slice(0, limit) : sortedRecords);
+    };
+
     const unsubscribe = subscribeToDataUpdates(
       'playRecordsUpdated',
       (newRecords: Record<string, PlayRecord>) => {
+        if (!active) return;
         updatePlayRecords(newRecords);
         setLoading(false);
       }
@@ -76,24 +69,31 @@ export default function ContinueWatching({
 
     const fetchPlayRecords = async () => {
       try {
-        const hasCachedSnapshot = applyCachedSnapshot();
-        if (!hasCachedSnapshot) {
+        const cachedRecords = getCachedPlayRecordsSnapshot();
+        if (Object.keys(cachedRecords).length > 0) {
+          updatePlayRecords(cachedRecords, cachedDisplayLimit);
+          setLoading(false);
+        } else {
           setLoading(true);
         }
 
         const allRecords = await getAllPlayRecords();
         updatePlayRecords(allRecords);
       } catch (error) {
+        if (!active) return;
         console.error('获取播放记录失败:', error);
         setPlayRecords([]);
       } finally {
-        setLoading(false);
+        if (active) setLoading(false);
       }
     };
 
-    fetchPlayRecords();
-    return unsubscribe;
-  }, [cachedDisplayLimit]);
+    void fetchPlayRecords();
+    return () => {
+      active = false;
+      unsubscribe();
+    };
+  }, [cachedDisplayLimit, displayLimit]);
 
   if (variant !== 'dashboard' && !loading && playRecords.length === 0) {
     return null;
@@ -202,8 +202,13 @@ export default function ContinueWatching({
               <Link href='/search'>去找一部想看的影片</Link>
             </div>
           ) : (
-            <div className={dashboard.historyList}>
-              {playRecords.slice(0, 4).map((record) => {
+            <div
+              className={dashboard.historyList}
+              role='region'
+              aria-label='最近观看记录'
+              tabIndex={0}
+            >
+              {playRecords.slice(0, DASHBOARD_HISTORY_LIMIT).map((record) => {
                 const progress = getProgress(record);
                 const category =
                   record.origin === 'live'

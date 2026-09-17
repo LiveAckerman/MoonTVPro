@@ -13,6 +13,14 @@ import { useEffect, useRef, useState } from 'react';
 
 import styles from './HomeDashboard.module.css';
 
+import {
+  AI_CHAT_HISTORY_CHANGED,
+  getAIChatStorageKey,
+  getAIChatUsername,
+  readAIChatHistory,
+} from '@/lib/ai-chat-history';
+import { useAIChatUsername } from '@/hooks/useAIChatUsername';
+
 interface HomeAISearchProps {
   enabled: boolean;
   busy: boolean;
@@ -124,48 +132,65 @@ function AssistantMascot() {
   );
 }
 
-export default function HomeAISearch({
+export default function HomeAISearch(props: HomeAISearchProps) {
+  const username = useAIChatUsername();
+  return (
+    <HomeAISearchForUser
+      key={JSON.stringify(username)}
+      {...props}
+      username={username}
+      enabled={props.enabled && username !== null}
+    />
+  );
+}
+
+function HomeAISearchForUser({
   enabled,
   busy,
   isChatOpen,
   onAsk,
   onOpenHistory,
-}: HomeAISearchProps) {
+  username,
+}: HomeAISearchProps & { username: string | null }) {
   const [question, setQuestion] = useState('');
   const [recentQuestions, setRecentQuestions] = useState<string[]>([]);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
-  // Reuse the existing AI conversation, never invent past questions or timestamps.
+  const historyKey = getAIChatStorageKey(username);
+
+  // The preview and full panel share exactly the same user-scoped history key.
   useEffect(() => {
-    if (!enabled || isChatOpen) return;
-    try {
-      const saved: unknown = JSON.parse(
-        sessionStorage.getItem('ai-chat-general') || '[]'
-      );
-      if (!Array.isArray(saved)) {
-        setRecentQuestions([]);
-        return;
-      }
-      const questions = saved
-        .filter((message): message is { role: 'user'; content: string } =>
-          Boolean(
-            message &&
-              message.role === 'user' &&
-              typeof message.content === 'string' &&
-              message.content.trim()
-          )
-        )
+    if (!enabled || !historyKey) {
+      setRecentQuestions([]);
+      return;
+    }
+    if (isChatOpen) return;
+    const load = () => {
+      const questions = readAIChatHistory(historyKey)
+        .filter((message) => message.role === 'user' && message.content.trim())
         .map((message) => message.content.trim())
         .reverse();
       setRecentQuestions(Array.from(new Set(questions)).slice(0, 3));
-    } catch {
-      setRecentQuestions([]);
-    }
-  }, [enabled, isChatOpen]);
+    };
+    const onHistoryChange = (event: Event) => {
+      if ((event as CustomEvent<{ key: string }>).detail?.key === historyKey)
+        load();
+    };
+    const onStorageChange = (event: StorageEvent) => {
+      if (event.key === null || event.key === historyKey) load();
+    };
+    load();
+    window.addEventListener(AI_CHAT_HISTORY_CHANGED, onHistoryChange);
+    window.addEventListener('storage', onStorageChange);
+    return () => {
+      window.removeEventListener(AI_CHAT_HISTORY_CHANGED, onHistoryChange);
+      window.removeEventListener('storage', onStorageChange);
+    };
+  }, [enabled, historyKey, isChatOpen]);
 
   const submit = () => {
     const text = question.trim();
-    if (!enabled || busy || !text) return;
+    if (!enabled || busy || !text || getAIChatUsername() !== username) return;
     onAsk(text);
     setQuestion('');
   };

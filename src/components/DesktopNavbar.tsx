@@ -9,6 +9,7 @@ import {
   type NavigationItem,
   type RuntimeNavigationConfig,
   buildFeatureNavigationItems,
+  DIRECT_PLAY_NAV_ACTION,
   HOME_NAV_ITEM,
   isNavigationItemActive,
   SEARCH_NAV_ITEM,
@@ -22,6 +23,7 @@ import { useWatchRoomContextSafe } from './WatchRoomProvider';
 interface DesktopNavbarProps {
   activePath?: string;
   showBackButton?: boolean;
+  onDirectPlay?: () => void;
 }
 
 type RuntimeConfigWindow = Window & {
@@ -31,6 +33,7 @@ type RuntimeConfigWindow = Window & {
 const DesktopNavbar = ({
   activePath = '/',
   showBackButton = false,
+  onDirectPlay,
 }: DesktopNavbarProps) => {
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -60,6 +63,12 @@ const DesktopNavbar = ({
     return null;
   }
 
+  // Keep utility entries last without changing the shared mobile menu order.
+  const sourceSearchItem = menuItems.find(
+    (item) => item.href === '/source-search'
+  );
+  const mainMenuItems = menuItems.filter((item) => item !== sourceSearchItem);
+  const DirectPlayIcon = DIRECT_PLAY_NAV_ACTION.icon;
   const navItemClass =
     'group inline-flex h-10 shrink-0 items-center justify-center gap-1.5 rounded-xl px-2.5 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-100/70 hover:text-green-600 data-[active=true]:bg-green-500/15 data-[active=true]:text-green-700 xl:px-3 dark:text-gray-300 dark:hover:bg-gray-800/80 dark:hover:text-green-400 dark:data-[active=true]:bg-green-500/10 dark:data-[active=true]:text-green-400';
 
@@ -75,6 +84,7 @@ const DesktopNavbar = ({
         data-active={active}
         aria-current={active ? 'page' : undefined}
         title={item.label}
+        aria-label={item.label}
         className={navItemClass}
       >
         <Icon className='h-4 w-4 shrink-0' />
@@ -104,8 +114,27 @@ const DesktopNavbar = ({
         >
           <div className='mx-auto flex min-w-max items-center justify-center gap-0.5 xl:gap-1'>
             {renderNavItem(HOME_NAV_ITEM)}
+            {mainMenuItems.map(renderNavItem)}
             {renderNavItem(SEARCH_NAV_ITEM)}
-            {menuItems.map(renderNavItem)}
+            {onDirectPlay && (
+              <button
+                type='button'
+                onClick={onDirectPlay}
+                aria-haspopup='dialog'
+                aria-label={DIRECT_PLAY_NAV_ACTION.label}
+                title={DIRECT_PLAY_NAV_ACTION.label}
+                className={navItemClass}
+              >
+                <DirectPlayIcon
+                  aria-hidden='true'
+                  className='h-4 w-4 shrink-0'
+                />
+                <span className='hidden whitespace-nowrap xl:inline'>
+                  {DIRECT_PLAY_NAV_ACTION.label}
+                </span>
+              </button>
+            )}
+            {sourceSearchItem && renderNavItem(sourceSearchItem)}
           </div>
         </nav>
 

@@ -1,12 +1,17 @@
 import {
   type LucideIcon,
   Blend,
+  BookMarked,
+  BookOpen,
   Cat,
   Clover,
   Container,
   Film,
   Globe,
   Home,
+  Link as LinkIcon,
+  ListVideo,
+  Music,
   Search,
   Star,
   Tv,
@@ -26,6 +31,10 @@ export interface RuntimeNavigationConfig {
   PRIVATE_LIBRARY_ENABLED?: boolean;
   ADVANCED_RECOMMENDATION_ENABLED?: boolean;
   CUSTOM_CATEGORIES?: unknown[];
+  ENABLE_SOURCE_SEARCH?: boolean;
+  MUSIC_ENABLED?: boolean;
+  SUWAYOMI_ENABLED?: boolean;
+  BOOKS_ENABLED?: boolean;
 }
 
 export const HOME_NAV_ITEM: NavigationItem = {
@@ -40,6 +49,12 @@ export const SEARCH_NAV_ITEM: NavigationItem = {
   href: '/search',
 };
 
+// Direct play is an action, not a link back to the homepage.
+export const DIRECT_PLAY_NAV_ACTION = {
+  icon: LinkIcon,
+  label: '直链播放',
+};
+
 const BASE_FEATURE_ITEMS: NavigationItem[] = [
   { icon: Film, label: '电影', href: '/douban?type=movie' },
   { icon: Tv, label: '剧集', href: '/douban?type=tv' },
@@ -51,7 +66,24 @@ export function buildFeatureNavigationItems(
   runtimeConfig?: RuntimeNavigationConfig,
   watchRoomEnabled = false
 ): NavigationItem[] {
-  const items = [...BASE_FEATURE_ITEMS];
+  const items: NavigationItem[] = [];
+
+  // Same visibility rule as the former homepage shortcut.
+  if (runtimeConfig && runtimeConfig.ENABLE_SOURCE_SEARCH !== false) {
+    items.push({ icon: ListVideo, label: '源站寻片', href: '/source-search' });
+  }
+  items.push(...BASE_FEATURE_ITEMS);
+
+  // Preserve optional destinations when removing the whole homepage shortcut bar.
+  if (runtimeConfig?.MUSIC_ENABLED) {
+    items.push({ icon: Music, label: '音乐视听', href: '/music' });
+  }
+  if (runtimeConfig?.SUWAYOMI_ENABLED) {
+    items.push({ icon: BookOpen, label: '漫画展馆', href: '/manga' });
+  }
+  if (runtimeConfig?.BOOKS_ENABLED) {
+    items.push({ icon: BookMarked, label: '电子书馆', href: '/books' });
+  }
 
   if (runtimeConfig?.LIVE_ENABLED) {
     items.push({ icon: TvMinimalPlay, label: '电视直播', href: '/live' });

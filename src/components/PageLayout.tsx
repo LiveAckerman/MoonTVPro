@@ -1,12 +1,17 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import dynamic from 'next/dynamic';
+import { usePathname, useRouter } from 'next/navigation';
+import { useCallback, useEffect, useState } from 'react';
 
 import DesktopNavbar from './DesktopNavbar';
 import MobileBottomNav from './MobileBottomNav';
 import MobileHeader from './MobileHeader';
 import { VersionCheckProvider } from './VersionCheckProvider';
+
+const DirectPlayDialog = dynamic(() => import('./DirectPlayDialog'), {
+  ssr: false,
+});
 
 interface PageLayoutProps {
   children: React.ReactNode;
@@ -20,7 +25,15 @@ const PageLayout = ({
   hideNavigation = false,
 }: PageLayoutProps) => {
   const router = useRouter();
+  const pathname = usePathname();
+  const [directPlayOpen, setDirectPlayOpen] = useState(false);
+  const openDirectPlay = useCallback(() => setDirectPlayOpen(true), []);
+  const closeDirectPlay = useCallback(() => setDirectPlayOpen(false), []);
   const [backgroundImage, setBackgroundImage] = useState('');
+
+  useEffect(() => {
+    closeDirectPlay();
+  }, [pathname, closeDirectPlay]);
   const shouldShowSharedBackground = !hideNavigation && activePath !== '/play';
 
   useEffect(() => {
@@ -83,6 +96,7 @@ const PageLayout = ({
               showBackButton={['/play', '/live'].includes(activePath)}
             />
             <DesktopNavbar
+              onDirectPlay={openDirectPlay}
               activePath={activePath}
               showBackButton={['/play', '/live'].includes(activePath)}
             />
@@ -104,10 +118,16 @@ const PageLayout = ({
 
         {!hideNavigation && (
           <div className='md:hidden'>
-            <MobileBottomNav activePath={activePath} />
+            <MobileBottomNav
+              activePath={activePath}
+              onDirectPlay={openDirectPlay}
+            />
           </div>
         )}
       </div>
+      {!hideNavigation && directPlayOpen && (
+        <DirectPlayDialog onClose={closeDirectPlay} />
+      )}
     </VersionCheckProvider>
   );
 };
