@@ -10,7 +10,12 @@ function normalizeContent(content: string): string {
 }
 
 function assertJson(content: string): void {
-  JSON.parse(content);
+  const value: unknown = JSON.parse(content);
+  // Configuration consumers read api_site/custom_category from an object.
+  // Syntactically valid JSON such as null is not a usable configuration.
+  if (value === null || typeof value !== 'object' || Array.isArray(value)) {
+    throw new Error('配置文件的顶层必须是 JSON 对象');
+  }
 }
 
 /**
@@ -45,6 +50,6 @@ export async function parseConfigSubscriptionContent(
     assertJson(decoded);
     return { content: decoded, format: 'base58' };
   } catch {
-    throw new Error('配置格式错误：订阅内容必须是原始 JSON 或 Base58 编码的 JSON');
+    throw new Error('配置格式错误：订阅内容必须是原始 JSON 对象或 Base58 编码的 JSON 对象');
   }
 }
