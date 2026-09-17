@@ -23,30 +23,20 @@ function getOIDCProviderIcon(buttonText: string) {
     { keywords: ['linuxdo'], icon: '/icons/linuxdo.png', alt: 'LinuxDo' },
     { keywords: ['github'], icon: '/icons/github.png', alt: 'GitHub' },
     { keywords: ['google'], icon: '/icons/google.png', alt: 'Google' },
-    {
-      keywords: ['microsoft', 'azure', 'entra'],
-      icon: '/icons/microsoft.png',
-      alt: 'Microsoft',
-    },
+    { keywords: ['microsoft', 'azure', 'entra'], icon: '/icons/microsoft.png', alt: 'Microsoft' },
     { keywords: ['gitlab'], icon: '/icons/gitlab.png', alt: 'GitLab' },
   ];
 
   for (const provider of providers) {
-    if (provider.keywords.some((keyword) => text.includes(keyword))) {
-      return (
-        <img src={provider.icon} alt={provider.alt} className='w-5 h-5 mr-2' />
-      );
+    if (provider.keywords.some(keyword => text.includes(keyword))) {
+      return <img src={provider.icon} alt={provider.alt} className='w-5 h-5 mr-2' />;
     }
   }
 
   // 默认图标
   return (
     <svg className='w-5 h-5 mr-2' fill='currentColor' viewBox='0 0 20 20'>
-      <path
-        fillRule='evenodd'
-        d='M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z'
-        clipRule='evenodd'
-      />
+      <path fillRule='evenodd' d='M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z' clipRule='evenodd' />
     </svg>
   );
 }

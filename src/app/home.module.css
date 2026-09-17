@@ -55,20 +55,6 @@
   --home-track: rgba(195, 208, 228, 0.17);
 }
 
-.hero {
-  margin-bottom: 24px;
-  overflow: hidden;
-  border: 1px solid rgba(194, 214, 234, 0.14);
-  border-radius: 20px;
-  background: #07182b;
-  box-shadow: 0 16px 48px rgba(2, 14, 30, 0.18);
-}
-
-/* A disabled or unavailable banner must not leave an empty bordered panel. */
-.hero:empty {
-  display: none;
-}
-
 .content {
   min-width: 0;
 }
@@ -177,11 +163,6 @@
     padding: 16px 22px 40px;
   }
 
-  .hero {
-    margin-bottom: 32px;
-    border-radius: 24px;
-  }
-
   .row {
     margin-inline: -24px;
   }
@@ -189,12 +170,6 @@
   .posterItem {
     width: 176px;
     min-width: 176px;
-  }
-}
-
-@media (min-width: 1280px) {
-  .page {
-    padding-inline: 22px;
   }
 }
 

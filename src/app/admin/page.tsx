@@ -11544,7 +11544,7 @@ const SiteConfigComponent = ({
                   className='w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-green-500 focus:border-transparent'
                 />
                 <p className='mt-1 text-xs text-gray-500 dark:text-gray-400'>
-                  填写弹幕服务器的基础地址，例如 https://dm.ljw44.com。不要在地址末尾添加 Token 或 /api/v2，访问令牌请在下方单独填写。API 部署参考
+                  填写弹幕服务器的基础地址，例如 https://mtvpls-danmu.netlify.app。不要在地址末尾添加 Token 或 /api/v2，访问令牌请在下方单独填写。API 部署参考
                   <a
                     href='https://github.com/huangxd-/danmu_api.git'
                     target='_blank'
