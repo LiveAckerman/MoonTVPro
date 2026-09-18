@@ -94,4 +94,4 @@ jobs:
             sudo -n systemctl status ssh --no-pager || true; \
             sudo -n ufw status verbose || true; \
             sudo -n fail2ban-client status sshd || true; \
-            sudo -n journalctl -u ssh -n 80 --no-pager || true'
+            sudo -n journalctl -u ssh -n 80 --no-pager || true' || true
