@@ -57,6 +57,7 @@ jobs:
           TV3_HOST: ${{ secrets.TV3_HOST }}
           TV3_USER: ${{ secrets.TV3_USER }}
           GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GHCR_USER: ${{ github.actor }}
         run: |
           set -euo pipefail
           export COMPOSE_B64="$(printf '%s\n' \
@@ -70,12 +71,12 @@ jobs:
             '    environment:' \
             '      SITE_BASE: https://tv3.ljw44.com' \
             '    ports:' \
-            '      - "3000:3000"' \
+            '      - "3013:3000"' \
             '    volumes:' \
             '      - ./data:/app/.data' \
             '      - ./offline-downloads:/data' \
             | base64 -w 0)"
           printf '%s' "$GHCR_TOKEN" | ssh -i "$HOME/.ssh/tv3_key" -o StrictHostKeyChecking=no -o ConnectTimeout=15 "$TV3_USER@$TV3_HOST" \
-            'docker login ghcr.io -u github-actions --password-stdin'
+            "docker login ghcr.io -u '$GHCR_USER' --password-stdin"
           ssh -i "$HOME/.ssh/tv3_key" -o StrictHostKeyChecking=no -o ConnectTimeout=15 "$TV3_USER@$TV3_HOST" \
-            "export COMPOSE_B64='$COMPOSE_B64'; mkdir -p /opt/moontvplus-tv3/data /opt/moontvplus-tv3/offline-downloads; printf '%s' \"\$COMPOSE_B64\" | base64 -d > /opt/moontvplus-tv3/compose.yml; cd /opt/moontvplus-tv3; docker compose pull; docker compose up -d --remove-orphans"
+            "export COMPOSE_B64='$COMPOSE_B64'; mkdir -p /opt/moontvplus-tv3/data /opt/moontvplus-tv3/offline-downloads; printf '%s' \"\$COMPOSE_B64\" | base64 -d > /opt/moontvplus-tv3/docker-compose.yml; cd /opt/moontvplus-tv3; docker compose -f docker-compose.yml pull; docker compose -f docker-compose.yml up -d --remove-orphans"
