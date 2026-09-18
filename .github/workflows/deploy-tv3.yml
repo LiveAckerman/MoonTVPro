@@ -77,6 +77,6 @@ jobs:
             '      - ./offline-downloads:/data' \
             | base64 -w 0)"
           printf '%s' "$GHCR_TOKEN" | ssh -i "$HOME/.ssh/tv3_key" -o StrictHostKeyChecking=no -o ConnectTimeout=15 "$TV3_USER@$TV3_HOST" \
-            "docker login ghcr.io -u '$GHCR_USER' --password-stdin"
+            "sudo -n docker login ghcr.io -u '$GHCR_USER' --password-stdin"
           ssh -i "$HOME/.ssh/tv3_key" -o StrictHostKeyChecking=no -o ConnectTimeout=15 "$TV3_USER@$TV3_HOST" \
-            "export COMPOSE_B64='$COMPOSE_B64'; mkdir -p /opt/moontvplus-tv3/data /opt/moontvplus-tv3/offline-downloads; printf '%s' \"\$COMPOSE_B64\" | base64 -d > /opt/moontvplus-tv3/docker-compose.yml; cd /opt/moontvplus-tv3; docker compose -f docker-compose.yml pull; docker compose -f docker-compose.yml up -d --remove-orphans"
+            "export COMPOSE_B64='$COMPOSE_B64'; sudo -n mkdir -p /opt/moontvplus-tv3/data /opt/moontvplus-tv3/offline-downloads; printf '%s' \"\$COMPOSE_B64\" | base64 -d | sudo -n tee /opt/moontvplus-tv3/docker-compose.yml >/dev/null; cd /opt/moontvplus-tv3; sudo -n docker compose -f docker-compose.yml pull; sudo -n docker compose -f docker-compose.yml up -d --remove-orphans"
