@@ -80,3 +80,18 @@ jobs:
             "sudo -n docker login ghcr.io -u '$GHCR_USER' --password-stdin"
           ssh -i "$HOME/.ssh/tv3_key" -o StrictHostKeyChecking=no -o ConnectTimeout=15 "$TV3_USER@$TV3_HOST" \
             "export COMPOSE_B64='$COMPOSE_B64'; sudo -n mkdir -p /opt/moontvplus-tv3/data /opt/moontvplus-tv3/offline-downloads; printf '%s' \"\$COMPOSE_B64\" | base64 -d | sudo -n tee /opt/moontvplus-tv3/docker-compose.yml >/dev/null; cd /opt/moontvplus-tv3; sudo -n docker compose -f docker-compose.yml pull; sudo -n docker compose -f docker-compose.yml up -d --remove-orphans"
+
+      - name: Diagnose TV3 host SSH and firewall
+        if: always()
+        env:
+          TV3_HOST: ${{ secrets.TV3_HOST }}
+          TV3_USER: ${{ secrets.TV3_USER }}
+        run: |
+          set +e
+          ssh -i "$HOME/.ssh/tv3_key" -o StrictHostKeyChecking=no -o ConnectTimeout=15 "$TV3_USER@$TV3_HOST" ' \
+            hostname; uptime; \
+            ss -ltnp | grep :22 || true; \
+            sudo -n systemctl status ssh --no-pager || true; \
+            sudo -n ufw status verbose || true; \
+            sudo -n fail2ban-client status sshd || true; \
+            sudo -n journalctl -u ssh -n 80 --no-pager || true'
